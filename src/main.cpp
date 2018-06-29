@@ -206,7 +206,7 @@ int main() {
   int lane = 1;
 
   // Have a reference velocity (mph) to target
-  double ref_vel = 49.5;
+  double ref_vel = 0;
 
   h.onMessage([&map_waypoints_x,
                &map_waypoints_y,
@@ -227,14 +227,14 @@ int main() {
 
       if (s != "") {
 
-        cout << s << endl;
-
         auto j = json::parse(s);
 
         string event = j[0].get<string>();
 
         if (event == "telemetry") {
           // j[1] is the data JSON object
+
+            int lane_width = 4;
 
         	// Main car's localization Data
           	double car_x = j[1]["x"];
@@ -261,7 +261,69 @@ int main() {
 
             int prev_size = previous_path_x.size();
 
-            cout << "Previous path size: " << prev_size << endl;
+            // Consider the sensor fusion data to see if there are vehicles in
+            // our path. Decide on speed and lane accordingly, before passing
+            // the values to the path generation code.
+            if (prev_size > 0)
+            {
+                car_s = end_path_s;
+            }
+
+            // Store the indices of any cars that are close to the ego car
+            vector<int> close_cars;
+
+            int closest_car_idx = 999; // just some large number
+            int closest_car_distance = 999; 
+            int closest_car_speed = 999;
+
+            for (int i=0; i<sensor_fusion.size(); i++)
+            {
+                // Check if the car is in our current lane and if it is, decide what to do. 
+                float d = sensor_fusion[i][6];
+                if (d < (2+lane_width*lane+2) && d > (2+lane_width*lane-2))
+                {
+                    // If the car is behind us, just ignore it.
+                    double check_car_s = sensor_fusion[i][5];
+                    if (check_car_s < car_s)
+                        continue;
+
+                    double vx = sensor_fusion[i][3];
+                    double vy = sensor_fusion[i][4];
+                    double check_speed = sqrt(vx*vx+vy*vy);
+
+                    //check_car_s += ((double)prev_size*0.2*check_speed);
+
+                    if ((check_car_s > car_s) && ((check_car_s - car_s) < 20))
+                    {
+                        close_cars.push_back(i);
+                        int distance = check_car_s - car_s;
+                        if (distance < closest_car_distance) 
+                        {
+                            closest_car_idx = i;
+                            closest_car_speed = check_speed;
+                            closest_car_distance = distance;
+                        }
+                    }
+                }
+            }
+
+            if (close_cars.size() > 0)
+            {
+                cout << endl << "Number of close cars: " << close_cars.size() << endl;
+                cout << "Distance to closest: " << closest_car_distance << endl;
+                cout << "Speed of closest: " << closest_car_speed << endl;
+                cout << "Speed of ego: " << car_speed*0.44704 << endl;
+                ref_vel -= 0.324;
+            } 
+            else if (ref_vel < 49.5) 
+            {
+                ref_vel += 0.224;
+                cout << '.' << flush;
+            } 
+            else 
+            {
+                cout << '.' << flush;
+            }
 
             vector<double> ptsx;
             vector<double> ptsy;
@@ -272,6 +334,7 @@ int main() {
 
             if (prev_size < 2)
             {
+                // Use two points that make the path tangent to the car
                 double prev_car_x = car_x - cos(car_yaw);
                 double prev_car_y = car_y - sin(car_yaw);
 
@@ -298,11 +361,11 @@ int main() {
             }
 
             vector<double> next_wp0 = getXY(car_s+30,
-                    (2+4*lane),map_waypoints_s,map_waypoints_x,map_waypoints_y);
+                    (2+lane_width*lane),map_waypoints_s,map_waypoints_x,map_waypoints_y);
             vector<double> next_wp1 = getXY(car_s+60,
-                    (2+4*lane),map_waypoints_s,map_waypoints_x,map_waypoints_y);
+                    (2+lane_width*lane),map_waypoints_s,map_waypoints_x,map_waypoints_y);
             vector<double> next_wp2 = getXY(car_s+90,
-                    (2+4*lane),map_waypoints_s,map_waypoints_x,map_waypoints_y);
+                    (2+lane_width*lane),map_waypoints_s,map_waypoints_x,map_waypoints_y);
 
             ptsx.push_back(next_wp0[0]);
             ptsx.push_back(next_wp1[0]);
@@ -317,6 +380,8 @@ int main() {
                 double shift_x = ptsx[i] - ref_x;
                 double shift_y = ptsy[i] - ref_y;
 
+                // Convert to car coords. The origin is the last point of the
+                // previous path and the car reference angle is 0 degrees
                 ptsx[i] = (shift_x*cos(0-ref_yaw) - shift_y*sin(0-ref_yaw));
                 ptsy[i] = (shift_x*sin(0-ref_yaw) + shift_y*cos(0-ref_yaw));
             }
