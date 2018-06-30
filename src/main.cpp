@@ -261,69 +261,135 @@ int main() {
 
             int prev_size = previous_path_x.size();
 
+            //////////////////////////////////////////////////////////
+            // Begin fusion data processing and lane change handling
+            //////////////////////////////////////////////////////////
+
             // Consider the sensor fusion data to see if there are vehicles in
             // our path. Decide on speed and lane accordingly, before passing
             // the values to the path generation code.
             if (prev_size > 0)
-            {
                 car_s = end_path_s;
-            }
 
             // Store the indices of any cars that are close to the ego car
             vector<int> close_cars;
 
-            int closest_car_idx = 999; // just some large number
-            int closest_car_distance = 999; 
-            int closest_car_speed = 999;
+            int front_car_idx = 999; // just some large number
+            int front_car_distance = 999; 
+            int front_car_speed = 999;
+
+            double nearest_car_lane0 = 999;
+            double nearest_car_lane2 = 999;
+            int best_of_lane_0_or_2 = 0;
+
+            int check_car_lane;
+
+            bool lane0_free = true;
+            bool lane1_free = true;
+            bool lane2_free = true;
+
+            int min_rear_clearance = 20;
+            int min_forward_clearance = 15;
+
+            //cout << "Ego s:" << car_s << endl;
+            //for (int i=0; i<sensor_fusion.size(); i++)
+            //    cout << sensor_fusion[i][5] << "|";
+            //cout << endl;
 
             for (int i=0; i<sensor_fusion.size(); i++)
             {
-                // Check if the car is in our current lane and if it is, decide what to do. 
-                float d = sensor_fusion[i][6];
-                if (d < (2+lane_width*lane+2) && d > (2+lane_width*lane-2))
+                double vx = sensor_fusion[i][3];
+                double vy = sensor_fusion[i][4];
+                double check_speed = sqrt(vx*vx+vy*vy);
+                double check_car_s = sensor_fusion[i][5];
+                //check_car_s += ((double)prev_size*0.2*check_speed);
+                float check_car_d = sensor_fusion[i][6];
+
+                if (check_car_d < 4) // 4 is the lane width
+                {
+                    check_car_lane = 0;
+                    if ((check_car_s >= car_s) && ((check_car_s - car_s) < min_forward_clearance))
+                    {
+                        lane0_free = false;
+                        if ((check_car_s - car_s) < nearest_car_lane0)
+                            nearest_car_lane0 = check_car_s - car_s;
+                    }
+                    else if ((check_car_s < car_s) && ((car_s - check_car_s) < min_rear_clearance))
+                        lane0_free = false;
+                }
+                else if (check_car_d >= 4  && check_car_d <= 8)
+                {
+                    check_car_lane = 1;
+                    if ((check_car_s >= car_s) && ((check_car_s - car_s) < min_forward_clearance))
+                        lane1_free = false;
+                    else if ((check_car_s < car_s) && ((car_s - check_car_s) < min_rear_clearance))
+                        lane1_free = false;
+                }
+                else if (check_car_d > 8)
+                {
+                    check_car_lane = 2;
+                    if ((check_car_s >= car_s) && ((check_car_s - car_s) < min_forward_clearance))
+                    {
+                        lane2_free = false;
+                        if ((check_car_s - car_s) < nearest_car_lane0)
+                            nearest_car_lane0 = check_car_s - car_s;
+                    }
+                    else if ((check_car_s < car_s) && ((car_s - check_car_s) < min_rear_clearance))
+                        lane2_free = false;
+                }
+
+                if (check_car_lane == lane)
                 {
                     // If the car is behind us, just ignore it.
-                    double check_car_s = sensor_fusion[i][5];
                     if (check_car_s < car_s)
                         continue;
 
-                    double vx = sensor_fusion[i][3];
-                    double vy = sensor_fusion[i][4];
-                    double check_speed = sqrt(vx*vx+vy*vy);
-
-                    //check_car_s += ((double)prev_size*0.2*check_speed);
-
-                    if ((check_car_s > car_s) && ((check_car_s - car_s) < 20))
+                    if ((check_car_s > car_s) && ((check_car_s - car_s) < 25))
                     {
                         close_cars.push_back(i);
                         int distance = check_car_s - car_s;
-                        if (distance < closest_car_distance) 
+                        if (distance < front_car_distance) 
                         {
-                            closest_car_idx = i;
-                            closest_car_speed = check_speed;
-                            closest_car_distance = distance;
+                            front_car_idx = i;
+                            front_car_speed = check_speed;
+                            front_car_distance = distance;
                         }
                     }
                 }
             }
 
+            // Print some status info. A printed 1 means the lane is not free
+            cout << !lane0_free << " | " << !lane1_free << " | " << !lane2_free << endl;
+
             if (close_cars.size() > 0)
             {
-                cout << endl << "Number of close cars: " << close_cars.size() << endl;
-                cout << "Distance to closest: " << closest_car_distance << endl;
-                cout << "Speed of closest: " << closest_car_speed << endl;
-                cout << "Speed of ego: " << car_speed*0.44704 << endl;
-                ref_vel -= 0.324;
+                if ((lane == 0 || lane == 2) && lane1_free)
+                    lane = 1;
+                else if (lane == 1 && lane2_free)
+                {
+                    best_of_lane_0_or_2 = 0;
+                    if (nearest_car_lane2 < nearest_car_lane0)
+                        best_of_lane_0_or_2 = 2;
+                    lane = best_of_lane_0_or_2;
+                }
+                else if (lane == 1 && lane0_free)
+                    lane = 0;
+                else
+                    ref_vel -= 0.324;
             } 
             else if (ref_vel < 49.5) 
             {
                 ref_vel += 0.224;
-                cout << '.' << flush;
             } 
-            else 
-            {
-                cout << '.' << flush;
-            }
+
+            // Regardless of whether or not there is a car in front, always
+            // prefer the middle lane
+            if ((lane == 0 || lane == 2) && lane1_free)
+                lane = 1;
+
+            //////////////////////////////////////////////////////////
+            // End fusion data processing and lane change handling
+            //////////////////////////////////////////////////////////
 
             vector<double> ptsx;
             vector<double> ptsy;
