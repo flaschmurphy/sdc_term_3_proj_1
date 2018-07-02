@@ -281,10 +281,13 @@ vector<double> getXY(double s, double d, const vector<double> &maps_s, const
 Given that we can now easily convert between coordinate systems, the steps to
 generate a trajectory are broadly as follows:
 
-* If no lane change is required, simply add an increment to `s` and leave `d`
-unchanged. Performing this multiple times will generate a straight path
-forward. If acceleration or deceleration is needed, this can be achieved by
-varying the difference between successive `s` values.
+* Decide to work in Frenet coordinates and convert any past trajectory points 
+  into Frenet as needed.
+
+* If no lane change is required, simply add an increment to the most recent `s` 
+  and leave `d` unchanged. Performing this multiple times will generate a 
+  straight path forward. If acceleration or deceleration is needed, this can 
+  be achieved by varying the difference between successive `s` values.
 
 * If a lane change is needed, specify an `s` value as above, but also change
   `d` so that it corresponds to the desired lane.
@@ -297,7 +300,8 @@ varying the difference between successive `s` values.
   the old points from the last trajectory and the newly added points from the
   latest calculations. For this project I am using the `spline.h` library.
 
-* Return the new trajectory plan back to the simulator for actuation
+* Convert all points to Cartesian coordinates and return the new trajectory 
+  plan back to the simulator for actuation
 
 The implementation of these steps can be seen in lines 513 to 611 in `main.cpp`
 
