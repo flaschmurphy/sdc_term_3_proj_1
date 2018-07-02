@@ -56,11 +56,8 @@ int ClosestWaypoint(double x, double y, const vector<double> &maps_x, const vect
 			closestLen = dist;
 			closestWaypoint = i;
 		}
-
 	}
-
 	return closestWaypoint;
-
 }
 
 int NextWaypoint(double x, double y, double theta, const vector<double>
@@ -76,9 +73,7 @@ int NextWaypoint(double x, double y, double theta, const vector<double>
     {
       closestWaypoint++;
       if (closestWaypoint == maps_x.size())
-      {
         closestWaypoint = 0;
-      }
     }
     return closestWaypoint;
 }
@@ -92,9 +87,7 @@ vector<double> getFrenet(double x, double y, double theta, const vector<double>
 	int prev_wp;
 	prev_wp = next_wp-1;
 	if(next_wp == 0)
-	{
 		prev_wp  = maps_x.size()-1;
-	}
 
 	double n_x = maps_x[next_wp]-maps_x[prev_wp];
 	double n_y = maps_y[next_wp]-maps_y[prev_wp];
@@ -109,23 +102,18 @@ vector<double> getFrenet(double x, double y, double theta, const vector<double>
 	double frenet_d = distance(x_x,x_y,proj_x,proj_y);
 
 	//see if d value is positive or negative by comparing it to a center point
-
 	double center_x = 1000-maps_x[prev_wp];
 	double center_y = 2000-maps_y[prev_wp];
 	double centerToPos = distance(center_x,center_y,x_x,x_y);
 	double centerToRef = distance(center_x,center_y,proj_x,proj_y);
 
 	if(centerToPos <= centerToRef)
-	{
 		frenet_d *= -1;
-	}
 
 	// calculate s value
 	double frenet_s = 0;
 	for(int i = 0; i < prev_wp; i++)
-	{
 		frenet_s += distance(maps_x[i],maps_y[i],maps_x[i+1],maps_y[i+1]);
-	}
 
 	frenet_s += distance(0,0,proj_x,proj_y);
 
@@ -140,9 +128,7 @@ vector<double> getXY(double s, double d, const vector<double> &maps_s, const
     // Find the nearest map_s that is less than car_s
 	int prev_wp = -1;
 	while(s > maps_s[prev_wp+1] && (prev_wp < (int)(maps_s.size()-1) ))
-	{
 		prev_wp++;
-	}
 
     // Wraps back to zero at the end of the list
 	int wp2 = (prev_wp+1)%maps_x.size();
@@ -313,7 +299,7 @@ int main() {
             float max_deceleration = 1.9;
             float actual_deceleration = 0;
 
-            // Differnce in velocity between ego and vehicle in front, actual and normalized
+            // Difference in velocity between ego and vehicle in front, actual and normalized
             double vel_diff = 0;
             double vel_diff_norm = 0;
 
@@ -432,16 +418,16 @@ int main() {
 
             // Prefer the middle lane when reasonable
             if ((lane == 0 || lane == 2) && (lane1_sum == 0))
+            {
+                // If there is a lane change already in progress don't initiate another one
+                if (((car_d >= 1) && (car_d <= 3)) || ((car_d >= 9) && (car_d <= 11)))
                 {
-                    // If there is a lane change already inprogress don't initiate another one
-                    if (((car_d >= 1) && (car_d <= 3)) || ((car_d >= 9) && (car_d <= 11)))
-                    {
-                        if ((lane == 0) && (free_space_lane0 < free_space_lane1))
-                            lane = 1;
-                        else if ((lane == 2) && (free_space_lane2 < free_space_lane1))
-                            lane = 1;
-                    }
+                    if ((lane == 0) && ((free_space_lane0 < free_space_lane1) || (free_space_lane1 > 200)))
+                        lane = 1;
+                    else if ((lane == 2) && ((free_space_lane2 < free_space_lane1) || (free_space_lane1 > 200)))
+                        lane = 1;
                 }
+            }
 
             // Decide whether or not to change lanes, change speed or maintain current state
             if (close_cars.size() > 0)
@@ -455,7 +441,7 @@ int main() {
                 {
                     if ((best_of_lane_0_or_2 == 0) && (lane0_sum == 0))
                     {
-                        // If there is a lane change already inprogress don't initiate another one
+                        // If there is a lane change already in progress don't initiate another one
                         if ((car_d >= 5) && (car_d <= 7))
                         {
                             lane = 0;
