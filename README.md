@@ -43,7 +43,7 @@ This will create a file called `path_planning` which is the main executable of t
 
 ## Valid Trajectories
 
-### _Requirement _: The car is able to drive at least 4.32 miles without incident.
+### _Requirement_: The car is able to drive at least 4.32 miles without incident.
 
 In tests the car was easily able to drive around the full length of the track
 without incident. In fact I was able to reach a personal best of 27.61 miles so
@@ -57,7 +57,7 @@ to a very aggressive car elsewhere on the road.
 For a full video of the car driving around the track, see here:
 [YouTube](https://youtu.be/nXaARhqU-YI).
 
-### _Requirement _: The car drives according to the speed limit
+### _Requirement_: The car drives according to the speed limit
 
 The car uses the sensor fusion data stream coming from the simulator to
 determine whether or not any cars are in front of it in the current lane. If
@@ -117,13 +117,13 @@ if (must_decelerate)
 
 ```
 
-### _Requirement _: Max acceleration and jerk are not exceeded
+### _Requirement_: Max acceleration and jerk are not exceeded
 
 As noted above, the rate of acceleration and deceleration are dynamically
 adjusted to ensure that thresholds are not breached.
 
 
-### _Requirement _: Car does not have collisions
+### _Requirement_: Car does not have collisions
 
 Collision avoidance is achieved by parsing the sensor fusion data to determine
 which lanes are free and which ones are occupied. The implementation does not
@@ -198,7 +198,7 @@ if ((lane == 0 || lane == 2) && (lane1_sum == 0))
 }
 ```
 
-### _Requirement _: The car stays in its lane, except when changing lanes
+### _Requirement_: The car stays in its lane, except when changing lanes
 
 Lane change is achieved by specifying a point in Frenet coordinates that has
 a `d` value corresponding to the desired lane. The `spline.h` library is then
@@ -215,7 +215,7 @@ has completed. This behavior is mitigated by ensuring the destination lane has
 been free for sometime before committing to switch to it.
 
 
-### _Requirement _: The car is able to change lanes
+### _Requirement_: The car is able to change lanes
 
 See above.
 
