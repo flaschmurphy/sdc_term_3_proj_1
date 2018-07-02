@@ -52,8 +52,10 @@ does still suffer from some corner cases and will occasionally fail to respond
 to a very aggressive car elsewhere on the road.
 
 <div style="text-align:center"><img src="./resources/27miles.png"/></div>
+<div/><div/>
 
-For a full video of the car driving around the track, see here.
+For a full video of the car driving around the track, see here:
+[YouTube](https://youtu.be/nXaARhqU-YI).
 
 ### _Requirement _: The car drives according to the speed limit
 
