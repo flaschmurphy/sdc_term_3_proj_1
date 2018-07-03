@@ -1,6 +1,6 @@
 # Udacity Self Driving Car Nanodegree
 
-## Term 2, Project 1 -- Path Planning
+## Term 3, Project 1 -- Path Planning
 
 ### Name: Ciaran Murphy
 
