@@ -111,7 +111,7 @@ if (must_decelerate)
     // velocity of the two cars
     vel_diff = abs(front_car_speed - (car_speed*mph2mps));
     vel_diff_norm = vel_diff / front_car_speed;
-    actual_deceleration = abs((vel_diff_norm * max_deceleration));
+    actual_deceleration = vel_diff_norm * max_deceleration;
     ref_vel -= actual_deceleration;
 }
 
@@ -228,7 +228,7 @@ is used. This system considers the fact that in highway driving in particular,
 what is of most interest is the position in the lane, which is
 equivalent to the distance from the center of the road given any specified lane
 width, and the total amount of road traveled. These values are denoted `d` and
-`s` respectively. Using this coordinate system, one can imaging the road as
+`s` respectively. Using this coordinate system, one can image the road as
 a straight line and the lane position as a point to the left or right of that
 line at a right angle. Changing lane is then a simple matter of changing the
 `d` value to match the desired lane. When the time comes to actuate the car,
